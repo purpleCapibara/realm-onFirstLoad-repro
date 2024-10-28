@@ -22,7 +22,7 @@ const FeatureFlagsSchema: ObjectSchema = {
   name: REALM_TYPE_FEATURE_FLAGS,
   properties: {
     name: 'string',
-    enabled: 'bool',
+    value: 'bool',
   },
   primaryKey: 'name',
 };
