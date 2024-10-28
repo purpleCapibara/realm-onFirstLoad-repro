@@ -1,8 +1,20 @@
 import React from 'react';
-import {SafeAreaView, Text, View} from 'react-native';
+import {SafeAreaView, Text, View, Switch} from 'react-native';
 
-import Realm, {type Configuration, type ObjectSchema} from 'realm';
+import Realm, {
+  type Configuration,
+  type ObjectSchema,
+  App as RealmApp,
+} from 'realm';
 import {createRealmContext} from '@realm/react';
+
+Realm.setLogger(log => {
+  console.log('realm log', log.level, log.message, log.category);
+});
+
+Realm.setLogLevel('all');
+
+const app = new RealmApp({id: 'edek'});
 
 const RealmFeatureFlag = {
   enableExperimentalFeature1: 'enableExperimentalFeature1',
@@ -76,7 +88,8 @@ function FeatureFlagView() {
 
   return (
     <View>
-      <Text>Current feature flag state: {x}</Text>
+      <Switch value={x} onChange={() => setX(!x)} />
+      <Text>Current feature flag state: {String(x)}</Text>
     </View>
   );
 }
