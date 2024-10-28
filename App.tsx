@@ -1,11 +1,7 @@
 import React from 'react';
 import {SafeAreaView, Text, View, Switch} from 'react-native';
 
-import Realm, {
-  type Configuration,
-  type ObjectSchema,
-  App as RealmApp,
-} from 'realm';
+import Realm, {type Configuration, type ObjectSchema} from 'realm';
 import {createRealmContext} from '@realm/react';
 
 Realm.setLogger(log => {
@@ -13,8 +9,6 @@ Realm.setLogger(log => {
 });
 
 Realm.setLogLevel('all');
-
-const app = new RealmApp({id: 'edek'});
 
 const RealmFeatureFlag = {
   enableExperimentalFeature1: 'enableExperimentalFeature1',
@@ -58,7 +52,7 @@ export const realmConfig: Configuration = {
 
 const realm = new Realm(realmConfig);
 
-const {RealmProvider, useRealm, useQuery, useObject} =
+const {RealmProvider, useRealm, useObject} =
   createRealmContext(realm);
 
 const useFeatureFlag = (name: keyof typeof RealmFeatureFlag) => {
