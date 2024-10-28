@@ -1,118 +1,99 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
 import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+import {SafeAreaView, Text, View} from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+import Realm, {type Configuration, type ObjectSchema} from 'realm';
+import {createRealmContext} from '@realm/react';
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+const RealmFeatureFlag = {
+  enableExperimentalFeature1: 'enableExperimentalFeature1',
+  enableExperimentalFeature2: 'enableExperimentalFeature2',
+  enableExperimentalFeature3: 'enableExperimentalFeature3',
+} as const;
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+const REALM_TYPE_FEATURE_FLAGS = 'FeatureFlags';
+
+const FeatureFlagsSchema: ObjectSchema = {
+  name: REALM_TYPE_FEATURE_FLAGS,
+  properties: {
+    name: 'string',
+    enabled: 'bool',
+  },
+  primaryKey: 'name',
+};
+
+export const RealmSchema = [FeatureFlagsSchema];
+
+export const realmConfig: Configuration = {
+  schema: RealmSchema,
+  // Realm does not trigger onFirstOpen callback
+  // when trying to read value from schema in
+  onFirstOpen: realm => {
+    console.log('initialising realm');
+
+    // initialise feature flags
+    Object.entries(RealmFeatureFlag).forEach(([, value]) => {
+      realm.create(
+        REALM_TYPE_FEATURE_FLAGS,
+        {
+          name: value,
+          value: false,
+        },
+        Realm.UpdateMode.Never,
+      );
+    });
+  },
+};
+
+const realm = new Realm(realmConfig);
+
+const {RealmProvider, useRealm, useQuery, useObject} =
+  createRealmContext(realm);
+
+const useFeatureFlag = (name: keyof typeof RealmFeatureFlag) => {
+  const realm = useRealm();
+  const featureFlag = useObject<{name: string; value: boolean}>(
+    REALM_TYPE_FEATURE_FLAGS,
+    name,
+  );
+
+  const setFeatureFlag = (state: boolean) => {
+    if (!featureFlag) {
+      return;
+    }
+
+    realm.write(() => {
+      featureFlag.value = state;
+    });
+  };
+
+  return [featureFlag?.value, setFeatureFlag] as const;
+};
+
+function FeatureFlagView() {
+  const [x, setX] = useFeatureFlag('enableExperimentalFeature1');
+
+  console.log('featureFlag value', x);
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View>
+      <Text>Current feature flag state: {x}</Text>
     </View>
   );
 }
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+    <RealmProvider
+    // Running onFirstOpen as a prop yields the same result, Realm does not trigger the callback
+    // onFirstOpen={() => {
+    //   console.log('test in a context');
+    // }}
+    >
+      <SafeAreaView>
+        <FeatureFlagView />
+      </SafeAreaView>
+    </RealmProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
 
 export default App;
